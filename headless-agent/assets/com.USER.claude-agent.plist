@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd LaunchAgent for the headless agent loop (macOS).
+     __PLACEHOLDERS__ are filled by install.sh; do not edit the result
+     by hand — rerun install.sh instead.
+
+     Semantics that matter (learned from a real deployment):
+     * KeepAlive/SuccessfulExit=false: restart forever on CRASH (nonzero
+       exit) but do NOT resurrect after a graceful STOP (loop exits 0).
+       A bare KeepAlive=true would break the STOP-file mechanism.
+     * RunAtLoad=true: reboot resilience. ThrottleInterval=300 is the
+       RestartSec equivalent.
+     * caffeinate -is prevents idle/system sleep ON AC POWER ONLY.
+       Lid-close on battery still sleeps the machine: leave it on AC,
+       lid open, or use a desktop.
+     * launchd provides almost no environment: PATH and HOME must be
+       set explicitly here.
+     * There is no journalctl: stdout (loop heartbeat) and stderr go to
+       the files below. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>__LABEL__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-is</string>
+    <string>__KIT_DIR__/run-agent.sh</string>
+    <string>__REPO__</string>
+    <string>__BRANCH__</string>
+    <string>__MODEL__</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key><false/>
+  </dict>
+  <key>ThrottleInterval</key><integer>300</integer>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:__HOME__/.npm-global/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+  </dict>
+  <key>StandardOutPath</key><string>__KIT_DIR__/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>__KIT_DIR__/launchd.err.log</string>
+</dict>
+</plist>

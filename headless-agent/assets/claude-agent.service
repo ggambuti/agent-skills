@@ -1,0 +1,22 @@
+# claude-agent.service — systemd user unit (Linux). __PLACEHOLDERS__ are
+# filled by install.sh; do not edit the installed copy by hand.
+# The loop never stops itself; this unit never gives up restarting it.
+# Stop:  systemctl --user stop claude-agent   OR   touch STOP in the repo.
+# Watch: journalctl --user -u claude-agent -f
+
+[Unit]
+Description=Perpetual unattended Claude Code agent loop
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=__KIT_DIR__/run-agent.sh __REPO__ __BRANCH__ __MODEL__
+WorkingDirectory=__REPO__
+Restart=always
+RestartSec=300
+StartLimitIntervalSec=0
+Environment=PATH=__HOME__/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
