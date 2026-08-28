@@ -208,7 +208,8 @@ count as stuck.
 |---|---|
 | `GOAL.md` | The brief. Agent never modifies it. |
 | `PHASE` | `BUILDING` or `HARDENING`. One transition, agent-written. |
-| `PROGRESS.md` | Append-only dated log of every cycle's work. |
+| `PROGRESS.md` | Append-only dated log of every cycle's work. Auto-rotated past `PROGRESS_MAX_LINES` so cycles don't re-read days of history. |
+| `progress-archive/` | Older `PROGRESS.md` chunks moved here on rotation. Git-tracked, full history preserved. |
 | `BLOCKED.md` | Issues the agent parked after repeated failures. |
 | `ATTENTION.md` | Things only the user can resolve; agent continues anyway. |
 | `HANDOVER.md` | Operator card, regenerated at every launch. Loop-internal. |

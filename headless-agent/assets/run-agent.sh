@@ -35,6 +35,8 @@ SLEEP_FAIL_MAX=14400             # backoff ceiling: 4 h between polls,
 STUCK_SOFT=5                     # no-commit successful cycles before the
                                  # loop injects an "unstick" instruction.
                                  # NON-FATAL: the loop never halts itself.
+PROGRESS_MAX_LINES=400           # rotate PROGRESS.md past this so every
+                                 # cycle isn't re-reading days of history
 SERVICE_NAME="claude-agent"      # systemd unit name (for the operator card)
 VERIFY_CMD="make check"          # verification gate (for the operator card;
                                  # the binding definition stays in GOAL.md)
@@ -66,6 +68,23 @@ git checkout -q "$BRANCH"
 [ -f BLOCKED.md ]   || printf '# Blocked items\n\n' > BLOCKED.md
 [ -f ATTENTION.md ] || printf '# Items needing human attention\n\n' > ATTENTION.md
 [ -f PHASE ]        || printf 'BUILDING\n' > PHASE
+
+# Rotate PROGRESS.md once it grows past PROGRESS_MAX_LINES: full history
+# is preserved (git-tracked, not excluded like logs/) but each cycle only
+# pays to read the recent tail, not the whole multi-day log.
+rotate_progress() {
+  [ -f PROGRESS.md ] || return 0
+  [ "$(wc -l < PROGRESS.md)" -gt "$PROGRESS_MAX_LINES" ] || return 0
+  mkdir -p progress-archive
+  local archive="progress-archive/PROGRESS-$(date +%Y%m%d-%H%M%S).md"
+  mv PROGRESS.md "$archive"
+  { printf '# Progress log\n\n(entries before this point archived to %s)\n\n' "$archive"
+    tail -n 100 "$archive"
+  } > PROGRESS.md
+  git add -A
+  git commit -q -m "chore: rotate PROGRESS.md (auto)" || true
+  echo "[agent] rotated PROGRESS.md -> $archive"
+}
 
 # ---- platform-specific operator commands (for the card and journal) ----
 if [ "$(uname)" = "Darwin" ]; then
@@ -115,6 +134,9 @@ echo "[agent] full instructions: $REPO/HANDOVER.md"
 BASE_PROMPT='You are running unattended inside a perpetual loop; nobody will
 answer questions, and the loop will call you again after you exit.
 Read GOAL.md, PROGRESS.md, BLOCKED.md, ATTENTION.md and PHASE in the repo root.
+PROGRESS.md holds only recent entries — it is rotated periodically, with
+older entries moved to progress-archive/; consult those files or `git log`
+only if you specifically need older history.
 
 ABSOLUTE RULE — you never finish:
 You must NEVER conclude that the work is complete, wrap up, or idle.
@@ -232,6 +254,7 @@ while true; do
 
   cycle=$((cycle + 1))
   ts=$(date +%Y%m%d-%H%M%S)
+  rotate_progress
   head_before=$(git rev-parse HEAD)
 
   prompt="$BASE_PROMPT"
