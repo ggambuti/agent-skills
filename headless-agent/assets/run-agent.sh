@@ -263,7 +263,7 @@ while true; do
     echo "[agent] cycle $cycle: injecting unstick instruction (stuck=$stuck)"
   fi
 
-  echo "[agent] cycle $cycle starting at $ts (phase: $(cat PHASE 2>/dev/null))"
+  echo "[agent] cycle $cycle starting at $ts (orchestrator: $MODEL, phase: $(cat PHASE 2>/dev/null))"
 
   claude -p "$prompt" \
     --model "$MODEL" \
@@ -273,6 +273,25 @@ while true; do
     > "$LOGDIR/cycle-$cycle-$ts.json" \
     2> "$LOGDIR/cycle-$cycle-$ts.err"
   rc=$?
+
+  # ---- cycle token/model report (best-effort; silent on unparseable JSON,
+  # e.g. a failed cycle) ----
+  python3 - "$LOGDIR/cycle-$cycle-$ts.json" "$cycle" 2>/dev/null <<'PYEOF'
+import json, sys
+try:
+    obj = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+u = obj.get("usage") or {}
+parts = []
+for name, mu in (obj.get("modelUsage") or {}).items():
+    i = mu.get("inputTokens", mu.get("input_tokens", 0)) or 0
+    o = mu.get("outputTokens", mu.get("output_tokens", 0)) or 0
+    parts.append("%s(in=%d,out=%d)" % (name, i, o))
+print("[agent] cycle %s tokens: in=%d out=%d cache_read=%d  models: %s" % (
+    sys.argv[2], u.get("input_tokens", 0) or 0, u.get("output_tokens", 0) or 0,
+    u.get("cache_read_input_tokens", 0) or 0, ", ".join(parts) or "n/a"))
+PYEOF
 
   # ---- safety net: checkpoint any uncommitted leftovers ----
   if [ -n "$(git status --porcelain)" ]; then
