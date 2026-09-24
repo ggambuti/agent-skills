@@ -1,0 +1,51 @@
+# Fellowship team spec. This file IS the schema: every key appears once, commented.
+goal = "ship the rate limiter to completion on the branch"
+plan = "plan.md"                 # relative to workdir; checkbox tasks in '## Stage N' sections, with '## Global Constraints' and '## Stage gates'
+spec = "none"                    # optional design doc the PI reads once
+workdir = "."                    # absolute, or relative to this file; agents never leave it
+branch = "feature/rate-limit"
+handoff_dir = "handoffs"         # default ".claude/handoffs"; prompts go to <handoff_dir>/prompts/
+concurrency = 2                  # max workers active at once, on disjoint areas
+notes = """
+Repo traps every agent must know (free text, verbatim in every prompt):
+- run tests with `.venv/bin/python -m pytest`, never bare `pytest`
+- never `pkill -f pytest`
+"""
+escalation = [                   # the only reasons an agent may stop and ask the PI
+  "a task can only be done by violating a Global Constraint",
+  "a fallback stated in the plan was tried and still fails",
+  "the benchmark misses 50 ms by more than 2x after one optimisation pass",
+]
+
+[[roles]]                        # exactly one pi: the session itself. Name pool: gandalf, galadriel, sauron
+name = "gandalf"
+kind = "pi"
+model = "fable"                  # informational; the user sets the session model
+purpose = "concepts only; gate decisions; escalations"
+reads = ["spec"]             # informational: what the PI reads once; the script does not check it
+report_limit = 10
+
+[[roles]]                        # one or more leads. Pool: aragorn, legolas, gimli, boromir, faramir, eomer
+name = "aragorn"
+kind = "lead"
+model = "opus"                   # Agent tool enum: fable | opus | sonnet | haiku
+purpose = "assign tasks verbatim, review diffs, run gates"
+stages = [0, 1]                  # default: every stage in the plan; two leads may not share a stage
+# context_window = 1000000       # default from model table; handoff_at = 0.5; handoff_tasks = 6; report_limit = 15
+
+[[roles]]                        # workers. Pool: hobbits and the dwarves of the Hobbit
+name = "frodo"
+kind = "worker"
+model = "sonnet"
+lead = "aragorn"                 # default: the only lead
+purpose = "implement, tests first, one commit per task"
+stages = [0, 1]
+areas = ["pkg/", "app/", "tests/"]   # prefixes or globs; disjoint from any worker sharing a stage; together the workers must cover every path in the plan's **Files:** blocks (see `render.py --files`)
+
+[[roles]]
+name = "sam"
+kind = "worker"
+model = "haiku"
+purpose = "benchmarks and docs"
+stages = [0, 1]
+areas = ["benchmarks/", "README.md"]

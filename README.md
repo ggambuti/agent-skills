@@ -7,6 +7,7 @@ or weeks**, and for checking in on it while it works.
 |---|---|
 | [`headless-agent`](./headless-agent) | Sets up Claude Code to run as a perpetual, self-healing background loop — survives rate-limit resets, outages, crashes, and reboots, and never stops itself. |
 | [`headless-agent-report`](./headless-agent-report) | Read-only status report on a running headless agent: progress, blockers, quota usage, what it did overnight. |
+| [`fellowship`](./fellowship) | Runs a gated checkbox plan with a team of long-lived named agents: the session is the PI (gandalf), a lead holds the plan, workers own disjoint file areas, and every agent hands off to a twin when its context half-fills. Fewer total tokens, faster results. |
 
 ## How it works (short version)
 
