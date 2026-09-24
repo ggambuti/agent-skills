@@ -24,10 +24,11 @@ Twins: `frodo` → `frodo-2` → `frodo-3`. Models per the Agent tool enum: fabl
 3. **Write `team.toml`** in the workdir's handoff dir. `example/team.toml` is the schema, every key commented. Run `python3 scripts/render.py <team.toml>`: it validates (including that every plan file falls in some worker's area), writes one prompt file per agent, prints the table.
 4. **Propose the table** to the user as printed, plus the handoff thresholds line. Ask for approval. Edits: change the toml, re-render, re-show. Never spawn before a yes.
 5. **Read the spec once** if the pi role lists it. Read nothing else: not the plan, not source, not tests.
-6. **Spawn** every lead and every worker now, background, named, `Agent(name=<name>, model=<model>, prompt="You are <name>. Read <prompt path> fully and follow it.")`. Workers report "ready" to their lead and wait; the lead enforces concurrency. A worker whose message to its lead fails says so in its return; relay once and note it.
-7. **Run loop.** Do nothing until a message arrives. Gate passed → one line: pass. Gate failed → you do not judge the result: if the plan names the next move (a fallback, a re-run with other seeds) answer with that in one line; otherwise forward the lead's numbers to the user in ≤ 10 lines and relay the answer. Escalation → same rule: answer from the spec in ≤ report_limit lines when the spec settles it, else ask the user. Handoff notice → step 8. Anything else → ignore.
-8. **Handoff twin.** `Agent(name=<name>-<n+1>, model=<same>, prompt="You are <name>-<n+1>, twin of <name>. Read <prompt path>, then <handoff path>; continue from `next`." + answers to its `open doubts`, if any)`. Tell the lead the new name. A lead's twin: tell every worker of that lead.
-9. **Finish.** Lead reports final commit hash, evidence files, handoff files. Report to the user in ≤ 10 lines. Stop.
+6. **Roster card.** `python3 scripts/status.py <team.toml> init` writes `status.json` and prints the roster card. Show it: pass the HTML to the inline widget tool when one is available (desktop app), else print the `--md` table. Redraw only at spawn, each gate, each handoff and the finish.
+7. **Spawn** every lead and every worker now, background, named, `Agent(name=<name>, model=<model>, prompt="You are <name>. Read <prompt path> fully and follow it.")`. Workers report "ready" to their lead and wait; the lead enforces concurrency. A worker whose message to its lead fails says so in its return; relay once and note it.
+8. **Run loop.** Record every event in one Bash call, it costs nothing: `status.py <toml> spawn|msg|stop|handoff|done|gate|stage ...` (`stop NAME TOKENS` takes the cumulative figure from the agent's completion notification). Do nothing else until a message arrives. Gate passed → one line: pass. Gate failed → you do not judge the result: if the plan names the next move (a fallback, a re-run with other seeds) answer with that in one line; otherwise forward the lead's numbers to the user in ≤ 10 lines and relay the answer. Escalation → same rule: answer from the spec in ≤ report_limit lines when the spec settles it, else ask the user. Handoff notice → step 9. Anything else → ignore.
+9. **Handoff twin.** `Agent(name=<name>-<n+1>, model=<same>, prompt="You are <name>-<n+1>, twin of <name>. Read <prompt path>, then <handoff path>; continue from `next`." + answers to its `open doubts`, if any)`. Tell the lead the new name. A lead's twin: tell every worker of that lead.
+10. **Finish.** Lead reports final commit hash, evidence files, handoff files. Redraw the roster card once more, report to the user in ≤ 10 lines. Stop.
 
 ## Validation the script enforces
 
@@ -53,5 +54,5 @@ Exactly one pi; ≥ 1 lead; each stage owned by one lead and covered by ≥ 1 wo
 ## Files
 
 - `templates/lead.md`, `templates/worker.md`, `templates/common.md` (token rules, handoff protocol, handoff-file schema). Placeholders in `{braces}`; the script fails on any left unfilled.
-- `scripts/render.py` renders and validates; `scripts/test_render.py` is the self-check.
+- `scripts/render.py` renders and validates; `scripts/status.py` keeps `status.json` and prints the roster card (HTML, or `--md`). Self-checks: `scripts/test_render.py`, `scripts/test_status.py`.
 - `example/`: fixture plan, `team.toml`, and the generated prompts under `handoffs/prompts/` (regenerate with `python3 scripts/render.py example/team.toml`).
